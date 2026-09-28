@@ -28,25 +28,26 @@ service.interceptors.response.use(
     //处理业务状态码
     if (data.code === "200") {
       return data.data;
-    } else {
-        if(data.code === '-1'){
-            if(!config.url?.includes('/login')){
-                ElMessage.error(data.msg || '登录过期，请重新登录')
-                // 清除token
-                localStorage.removeItem('token')
-                //  清除用户信息
-                localStorage.removeItem('userInfo')
-                window.location.href = '/auth/Login'
-            } else {
-                ElMessage.error(data.msg || '登录过期，请重新登录')
-                return Promise.reject('网络请求失败....')
-            }
+    } else if (data.code === '-1') {
+      // 登录过期
+      ElMessage.error(data.msg || '登录过期，请重新登录')
+      if (!config.url?.includes('/login')) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('userInfo')
+        window.location.href = '/auth/Login'
       }
+      return Promise.reject(data)
+    } else {
+      // 其他业务错误码（如 6001 用户不存在、密码错误等）
+      ElMessage.error(data.msg || '操作失败')
+      return Promise.reject(data)
     }
-    return response
   },
   (error) => {
-    return Promise.reject(error);
+    // HTTP 错误（500/404/网络错误等）
+    const msg = error?.response?.data?.msg || error?.message || '网络请求失败'
+    ElMessage.error(msg)
+    return Promise.reject(error)
   },
 );
 

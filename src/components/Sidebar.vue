@@ -15,7 +15,7 @@
           alt="logo"
         />
         <div v-show="!isCollapsed" class="info-card">
-          <h1 class="brand-title">心理健康助手</h1>
+          <h1 class="brand-title">心迹花园</h1>
           <p class="brand-subtitle">管理后台</p>
         </div>
       </div>

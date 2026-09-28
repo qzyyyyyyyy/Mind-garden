@@ -96,7 +96,7 @@
     }
     // 获取封面图片
     const getImage = (url) => {
-        return url ? 'http://159.75.169.224:1235' + url : 'https://file.itndedu.com/psychology_ai.png'
+        return url ? '' + url : 'https://file.itndedu.com/psychology_ai.png'
     }
 
     const handleChange = (page) => {
