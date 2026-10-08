@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>相关信息图 - 心迹花园</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f4f5f7;
+        font-family:
+          "Microsoft YaHei", "PingFang SC", "Source Han Sans SC", sans-serif;
+      }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 24px;
+        background: #fff;
+        border-bottom: 1px solid #e5e7eb;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      .red-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #e03e3e;
+        flex: none;
+      }
+      .toolbar .title {
+        font-size: 22px;
+        font-weight: 700;
+        color: #3a3f47;
+        letter-spacing: 2px;
+      }
+      .spacer {
+        flex: 1;
+      }
+      .toolbar button {
+        padding: 6px 16px;
+        border: 1px solid #c9ccd2;
+        border-radius: 4px;
+        background: #fff;
+        color: #444;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .toolbar button:hover {
+        border-color: #4a90e2;
+        color: #4a90e2;
+      }
+      #wrap {
+        margin: 18px;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        overflow: auto;
+      }
+      svg {
+        display: block;
+        background: #fff;
+      }
+      .branch {
+        fill: none;
+        stroke-width: 2.4;
+      }
+      .leaf-line {
+        fill: none;
+        stroke-width: 1.6;
+      }
+      .center-text {
+        font-size: 19px;
+        font-weight: 700;
+        fill: #2f343c;
+      }
+      .module-text {
+        font-size: 17px;
+        font-weight: 700;
+      }
+      .leaf-text {
+        font-size: 14px;
+        fill: #444;
+      }
+      .center-node {
+        fill: #fff;
+        stroke: #555;
+        stroke-width: 1.5;
+      }
+      @media print {
+        body {
+          background: #fff;
+        }
+        .toolbar {
+          display: none;
+        }
+        #wrap {
+          margin: 0;
+          border: none;
+          overflow: visible;
+        }
+        svg {
+          width: 100% !important;
+          height: auto !important;
+        }
+        @page {
+          size: A3 landscape;
+          margin: 8mm;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <span class="red-dot"></span>
+      <span class="title">相关信息图</span>
+      <span class="spacer"></span>
+      <button id="btnFit">适应宽度</button>
+      <button id="btnRaw">原始大小</button>
+      <button id="btnPrint">打印 / 保存PDF</button>
+    </div>
+    <div id="wrap">
+      <svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+
+    <script>
+      /* ========== 系统分支数据（与 routes / views 一一对应） ========== */
+      const systemName = "心迹花园"
+
+      const branches = [
+        {
+          name: "用户模块",
+          color: "#3b82c4",
+          leaves: ["用户登录", "用户注册", "退出登录"]
+        },
+        {
+          name: "AI咨询模块",
+          color: "#4a90d9",
+          leaves: ["发起会话", "流式对话(SSE)", "会话管理", "情绪分析"]
+        },
+        { name: "情绪日记模块", color: "#5a9e3a", leaves: ["日记记录"] },
+        {
+          name: "情绪周报模块",
+          color: "#7ab648",
+          leaves: ["周报生成", "周报列表", "周报详情"]
+        },
+        {
+          name: "情绪急救箱模块",
+          color: "#d98a2b",
+          leaves: ["练习库浏览", "智能推荐", "练习打卡", "打卡记录", "效果统计"]
+        },
+        {
+          name: "心理测评模块",
+          color: "#d07a3c",
+          leaves: ["量表浏览", "在线测评", "测评记录"]
+        },
+        {
+          name: "知识库模块",
+          color: "#c04545",
+          leaves: ["分类导航", "文章列表", "文章详情"]
+        },
+        {
+          name: "后台管理模块",
+          color: "#7a5bb0",
+          leaves: ["数据分析", "文章管理", "咨询记录管理", "情绪日志管理"]
+        }
+      ]
+
+      /* ========== 布局参数 ========== */
+      const PAD_L = 30,
+        PAD_T = 40,
+        PAD_R = 60,
+        PAD_B = 40
+      const centerBoxW = 460,
+        centerBoxH = 70 // 中心节点尺寸
+      const centerLeft = 30 // 中心节点左边缘 x
+      const centerX = centerLeft + centerBoxW // 中心节点右边缘 x
+      const moduleX = 790 // 模块文字 x
+      const leafX = 1130 // 叶节点文字 x
+      const rowH = 142 // 每个模块分支行高
+
+      const totalH = branches.length * rowH
+      const SVG_H = PAD_T + totalH + PAD_B
+      const SVG_W = leafX + 320 + PAD_R
+
+      const centerCY = PAD_T + totalH / 2
+
+      /* ---- 生成 SVG ---- */
+      const NS = "http://www.w3.org/2000/svg"
+      const svg = document.getElementById("svg")
+      svg.setAttribute("width", SVG_W)
+      svg.setAttribute("height", SVG_H)
+      svg.setAttribute("viewBox", `0 0 ${SVG_W} ${SVG_H}`)
+
+      const el = (tag, attrs = {}, text) => {
+        const node = document.createElementNS(NS, tag)
+        for (const k in attrs) node.setAttribute(k, attrs[k])
+        if (text != null) node.textContent = text
+        svg.appendChild(node)
+        return node
+      }
+
+      /* 中心节点 */
+      el("rect", {
+        x: centerLeft,
+        y: centerCY - centerBoxH / 2,
+        width: centerBoxW,
+        height: centerBoxH,
+        rx: 14,
+        class: "center-node"
+      })
+      el(
+        "text",
+        {
+          x: centerX - centerBoxW / 2,
+          y: centerCY,
+          "text-anchor": "middle",
+          "dominant-baseline": "central",
+          class: "center-text"
+        },
+        systemName
+      )
+
+      /* 分支 */
+      branches.forEach((b, i) => {
+        const my = PAD_T + rowH * i + rowH / 2
+
+        // 中心 → 模块 的贝塞尔曲线
+        const c1x = centerX + 80
+        const c2x = moduleX - 60
+        el("path", {
+          d: `M ${centerX} ${centerCY} C ${c1x} ${centerCY}, ${c2x} ${my}, ${moduleX} ${my}`,
+          class: "branch",
+          stroke: b.color
+        })
+
+        // 模块文字（左侧小圆点 + 文字）
+        el("circle", { cx: moduleX, cy: my, r: 5, fill: b.color })
+        el(
+          "text",
+          {
+            x: moduleX + 12,
+            y: my + 6,
+            class: "module-text",
+            fill: b.color
+          },
+          b.name
+        )
+
+        // 模块 → 叶节点
+        const n = b.leaves.length
+        const leafStartY = my - ((n - 1) * 26) / 2
+        b.leaves.forEach((lf, j) => {
+          const ly = leafStartY + j * 26
+          // 曲线：从模块文字末端到叶节点
+          const sx = moduleX + 12 + b.name.length * 10.5
+          const lc1x = sx + 100
+          const lc2x = leafX - 40
+          el("path", {
+            d: `M ${sx} ${my} C ${lc1x} ${my}, ${lc2x} ${ly}, ${leafX} ${ly}`,
+            class: "leaf-line",
+            stroke: b.color
+          })
+          // 叶节点小圆点 + 文字
+          el("circle", { cx: leafX, cy: ly, r: 3.5, fill: b.color })
+          el(
+            "text",
+            {
+              x: leafX + 10,
+              y: ly + 5,
+              class: "leaf-text"
+            },
+            lf
+          )
+        })
+      })
+
+      /* 工具栏 */
+      document.getElementById("btnFit").onclick = () => {
+        svg.style.width = "100%"
+        svg.style.height = "auto"
+      }
+      document.getElementById("btnRaw").onclick = () => {
+        svg.style.width = ""
+        svg.style.height = ""
+      }
+      document.getElementById("btnPrint").onclick = () => window.print()
+    </script>
+  </body>
+</html>

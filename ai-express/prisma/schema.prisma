@@ -1,0 +1,282 @@
+// Prisma schema for 心理健康 AI 助手
+// Schema-first：schema.prisma 是数据库结构的唯一真相源
+// 数据库通过 Prisma migrations 管理（prisma/migrations/0_init 为基线迁移）
+// 字段名用 camelCase，通过 @map 对齐数据库 snake_case 列名
+// bigint 列声明为 BigInt（读取为 JS bigint，在 dao 层按需 Number()）
+// 变更流程：修改 schema → prisma migrate dev --name <描述> → prisma generate
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        BigInt    @id @default(autoincrement())
+  username  String    @unique
+  email     String?   @unique
+  phone     String?   @unique
+  password  String
+  nickname  String?
+  avatar    String?
+  gender    Int?
+  birthday  DateTime?
+  userType  Int       @map("user_type")
+  status    Int?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  sessions       ConsultationSession[]
+  diaries        EmotionDiary[]
+  aiTasks        AiAnalysisTask[]
+  files          SysFileInfo[]
+  favorites      UserFavorite[]
+  weeklyReports  EmotionWeeklyReport[]
+  exerciseRecords EmotionExerciseRecord[]
+  assessments    AssessmentRecord[]
+
+  @@map("user")
+}
+
+model ConsultationSession {
+  id                     BigInt    @id @default(autoincrement())
+  userId                 BigInt    @map("user_id")
+  sessionTitle           String?   @map("session_title")
+  startedAt              DateTime  @default(now()) @map("started_at")
+  lastEmotionAnalysis    Json?     @map("last_emotion_analysis")
+  lastEmotionUpdatedAt   DateTime? @map("last_emotion_updated_at")
+
+  user     User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ConsultationMessage[]
+
+  @@map("consultation_session")
+}
+
+model ConsultationMessage {
+  id          BigInt   @id @default(autoincrement())
+  sessionId   BigInt   @map("session_id")
+  senderType  Int      @map("sender_type")
+  messageType Int      @default(1) @map("message_type")
+  content     String
+  emotionTag  String?  @map("emotion_tag")
+  aiModel     String?  @map("ai_model")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  session ConsultationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("consultation_message")
+}
+
+model EmotionDiary {
+  id                  BigInt    @id @default(autoincrement())
+  userId              BigInt    @map("user_id")
+  diaryDate           DateTime @map("diary_date")
+  moodScore           Int      @map("mood_score")
+  dominantEmotion     String?  @map("dominant_emotion")
+  emotionTriggers     String?  @map("emotion_triggers")
+  diaryContent        String?  @map("diary_content")
+  sleepQuality        Int?     @map("sleep_quality")
+  stressLevel         Int?     @map("stress_level")
+  aiEmotionAnalysis   String?  @map("ai_emotion_analysis")
+  aiAnalysisUpdatedAt DateTime? @map("ai_analysis_updated_at")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiTasks AiAnalysisTask[]
+
+  @@unique([userId, diaryDate], name: "user_date_unique")
+  @@map("emotion_diary")
+}
+
+model AiAnalysisTask {
+  id             BigInt    @id @default(autoincrement())
+  diaryId        BigInt    @map("diary_id")
+  userId         BigInt    @map("user_id")
+  status         String
+  taskType       String    @map("task_type")
+  priority       Int       @default(2)
+  retryCount     Int       @default(0) @map("retry_count")
+  maxRetryCount  Int       @default(3) @map("max_retry_count")
+  errorMessage   String?   @map("error_message")
+  startedAt      DateTime? @map("started_at")
+  completedAt    DateTime? @map("completed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  diary EmotionDiary @relation(fields: [diaryId], references: [id], onDelete: Cascade)
+  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("ai_analysis_task")
+}
+
+model KnowledgeCategory {
+  id           BigInt    @id @default(autoincrement())
+  parentId     BigInt?   @map("parent_id")
+  categoryName String    @map("category_name")
+  categoryCode String?   @unique @map("category_code")
+  description  String?
+  sortOrder    Int       @default(0) @map("sort_order")
+  status       Int?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  articles KnowledgeArticle[]
+
+  @@map("knowledge_category")
+}
+
+model KnowledgeArticle {
+  id         String    @id
+  categoryId BigInt    @map("category_id")
+  title      String
+  summary    String?
+  content    String
+  coverImage String?   @map("cover_image")
+  tags       String?
+  authorId   BigInt?   @map("author_id")
+  readCount  Int       @default(0) @map("read_count")
+  status     Int?
+  publishedAt DateTime? @map("published_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  category  KnowledgeCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  favorites UserFavorite[]
+
+  @@map("knowledge_article")
+}
+
+model SysFileInfo {
+  id            BigInt    @id @default(autoincrement())
+  originalName  String    @map("original_name")
+  filePath      String    @map("file_path")
+  fileSize      BigInt    @map("file_size")
+  fileType      String    @map("file_type")
+  businessType  String?   @map("business_type")
+  businessId    String?   @map("business_id")
+  businessField String?   @map("business_field")
+  uploadUserId  BigInt?   @map("upload_user_id")
+  isTemp        Int       @default(0) @map("is_temp")
+  status        Int       @default(1)
+  createTime    DateTime  @default(now()) @map("create_time")
+  expireTime    DateTime? @map("expire_time")
+
+  uploadUser User? @relation(fields: [uploadUserId], references: [id], onDelete: SetNull)
+
+  @@map("sys_file_info")
+}
+
+model EmotionWeeklyReport {
+  id              BigInt    @id @default(autoincrement())
+  userId          BigInt    @map("user_id")
+  weekStart       DateTime  @map("week_start")
+  weekEnd         DateTime  @map("week_end")
+  reportContent   Json      @map("report_content")
+  moodTrend       Json?     @map("mood_trend")
+  triggerStats    Json?     @map("trigger_stats")
+  avgMoodScore    Float?    @map("avg_mood_score")
+  avgSleepQuality Float?    @map("avg_sleep_quality")
+  avgStressLevel  Float?    @map("avg_stress_level")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart], name: "user_week_unique")
+  @@map("emotion_weekly_report")
+}
+
+model EmotionExercise {
+  id               BigInt   @id @default(autoincrement())
+  name             String   @unique
+  category         String
+  description      String?
+  steps            Json?
+  durationMinutes  Int?     @map("duration_minutes")
+  suitableEmotions Json?    @map("suitable_emotions")
+  icon             String?
+  sortOrder        Int      @default(0) @map("sort_order")
+  status           Int      @default(1)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  records EmotionExerciseRecord[]
+
+  @@map("emotion_exercise")
+}
+
+model EmotionExerciseRecord {
+  id              BigInt   @id @default(autoincrement())
+  userId          BigInt   @map("user_id")
+  exerciseId      BigInt   @map("exercise_id")
+  sourceEmotion   String?  @map("source_emotion")
+  moodBefore      Int?     @map("mood_before")
+  moodAfter       Int?     @map("mood_after")
+  reflection      String?
+  durationSeconds Int?     @map("duration_seconds")
+  completedAt     DateTime @default(now()) @map("completed_at")
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise EmotionExercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@index([userId, completedAt])
+  @@map("emotion_exercise_record")
+}
+
+model PsychologicalScale {
+  id              BigInt   @id @default(autoincrement())
+  code            String   @unique
+  name            String
+  description     String?
+  instruction     String?
+  questions       Json
+  options         Json
+  levels          Json
+  durationMinutes Int?     @map("duration_minutes")
+  sortOrder       Int      @default(0) @map("sort_order")
+  status          Int      @default(1)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  records AssessmentRecord[]
+
+  @@map("psychological_scale")
+}
+
+model AssessmentRecord {
+  id          BigInt   @id @default(autoincrement())
+  userId      BigInt   @map("user_id")
+  scaleId     BigInt   @map("scale_id")
+  scaleCode   String   @map("scale_code")
+  scaleName   String   @map("scale_name")
+  totalScore  Int      @map("total_score")
+  level       String
+  levelIndex  Int      @map("level_index")
+  advice      String?
+  answers     Json
+  helpMode    Boolean  @default(false) @map("help_mode")
+  completedAt DateTime @default(now()) @map("completed_at")
+
+  user  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scale PsychologicalScale @relation(fields: [scaleId], references: [id], onDelete: Cascade)
+
+  @@index([userId, completedAt])
+  @@map("assessment_record")
+}
+
+model UserFavorite {
+  id        BigInt   @id @default(autoincrement())
+  userId    BigInt   @map("user_id")
+  articleId String   @map("article_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, articleId], name: "user_article_unique")
+  @@map("user_favorite")
+}
