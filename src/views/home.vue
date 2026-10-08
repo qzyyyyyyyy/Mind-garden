@@ -3,13 +3,13 @@
         <div class="content">
             <div class="text">
                 <h2 class="title">
-                    一次温暖的对话<br/>
+                    一次次的心理记录<br/>
                 </h2>
                 <span class="highlight-text">化孤独为慰藉</span>
-                <p class="description">每个深夜，每个焦虑的时刻，我们都在这里，不必独自承受，让心与心的连接温暖您的每一天</p>
+                <p class="description">每一份心情都值得被温柔以待，用文字记录情绪的起伏，让陪伴成为治愈的力量</p>
                 <div class="hero-actions">
-                    <el-button size="large" @click="$router.push('/consultation')">开始对话,获得陪伴</el-button>
-                    <el-button size="large" style="border-color:#fff" color="transparent">记录心情,释放情感</el-button>
+                    <el-button size="large" @click="$router.push('/consultation')">与小助手对话</el-button>
+                    <el-button size="large" @click="$router.push('/emotionDiary')" style="border-color:#fff" color="transparent">进入情绪日志</el-button>
                 </div>
             </div>
             <div class="robot">

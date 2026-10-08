@@ -3,9 +3,9 @@
         <div class="left-section">
             <div class="content">
                 <h2 class="title">心迹花园</h2>
-                <p class="text">每个深夜，每个焦虑的时刻，我们都在这里，不必独自承受，让心与心的连接温暖你的每一天</p>
+                <p class="text">每一次情绪的波动都值得被看见，写下今天的心情，读懂过去的自己，让情绪日志成为最懂你的陪伴</p>
                 <div class="robot">
-                    <el-image style="width: 90px;height: 90px;" :src="iconUrl" alt="心理AI助手"></el-image>
+                    <el-image style="width: 90px;height: 90px;" :src="iconUrl" alt="心迹助手"></el-image>
                 </div>
             </div>
         </div>

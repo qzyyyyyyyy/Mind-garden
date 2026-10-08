@@ -42,7 +42,7 @@
                         <el-input v-model="diaryForm.emotionTriggers" placeholder="今天什么事情影响了您的情绪？" type="textarea" :rows="3" maxLength="1000" show-word-limit></el-input>
                     </div>
                      <div class="form-group">
-                        <div class="form-label">今日感想</div>
+                        <div class="form-label">日志记录</div>
                         <el-input v-model="diaryForm.diaryContent" placeholder="写下您今天的想法、感受或发生的有趣事情..." type="textarea" :rows="5" maxLength="2000" show-word-limit></el-input>
                     </div>
                     <!-- 生活指标 -->
@@ -141,7 +141,7 @@
     .emotionDiary-container {
     background: linear-gradient(135deg, #fafbfc 0%, #f7f9fc 50%, #f2f6fa 100%);
     .header-section {
-        background: linear-gradient(135deg, #7ED321 0%, #F5A623 100%);
+        background: linear-gradient(135deg, #e1c4d8 0%, #f52370 100%);
         color: white;
         padding: 48px;
         .header-content {
